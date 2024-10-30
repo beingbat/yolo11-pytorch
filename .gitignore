@@ -1,0 +1,12 @@
+.vscode/*
+.DS_Store
+
+*.pyc
+*.txt
+
+models_complete
+ultralytics
+
+yolov11_args.yaml
+inference_ultralytics.py
+temp_preprocess.py
