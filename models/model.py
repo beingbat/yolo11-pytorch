@@ -16,6 +16,7 @@ from models.head import Detect
 class yolov11(nn.Module):
     # no of classes
     nc = 80
+    max_det = 300
 
     def __init__(self, model_size='nano'):
         super(yolov11, self).__init__()
@@ -79,16 +80,16 @@ class yolov11(nn.Module):
         x10 = self.l10(x)
         # head
         x = self.l11(x10)
-        x = self.l12(torch.cat[x, x6])
+        x = self.l12([x, x6])
         x13 = self.l13(x)
         x = self.l14(x13)
-        x = self.l15(torch.cat[x, x4])
+        x = self.l15([x, x4])
         x16 = self.l16(x)
         x = self.l17(x16)
-        x = self.l18(torch.cat[x, x13])
+        x = self.l18([x, x13])
         x19 = self.l19(x)
         x = self.l20(x19)
-        x = self.l21(torch.cat[x, x10])
+        x = self.l21([x, x10])
         x = self.l22(x)
         x = self.l23([x16, x19, x])
         return x
