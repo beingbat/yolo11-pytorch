@@ -1,17 +1,9 @@
-import torch
 from torch import nn
 
 from models.conv import Conv
 from models.block import Concat, C3k2, SPPF, C2PSA
 from models.head import Detect
-# from ultralytics.nn.modules import (
-#     C2PSA,
-#     SPPF,
-#     C3k2,
-#     Concat,
-#     Conv,
-#     Detect,
-# )
+from models.utils import fuse_conv_and_bn
 
 class yolov11(nn.Module):
     # no of classes
@@ -93,3 +85,37 @@ class yolov11(nn.Module):
         x = self.l22(x)
         x = self.l23([x16, x19, x])
         return x
+
+    def fuse(self):
+        """
+        Fuse the `Conv2d()` and `BatchNorm2d()` layers of the model into a single layer, in order to improve the
+        computation efficiency.
+
+        Returns:
+            (nn.Module): The fused model is returned.
+        """
+        if not self.is_fused():
+            for m in self.modules():
+                if isinstance(m, (Conv)) and hasattr(m, "bn"):
+                    m.conv = fuse_conv_and_bn(m.conv, m.bn)  # update conv
+                    delattr(m, "bn")  # remove batchnorm
+                    m.forward = m.forward_fuse  # update forward
+        return self
+    
+    def is_fused(self, thresh=10):
+        """
+        Check if the model has less than a certain threshold of BatchNorm layers.
+
+        Args:
+            thresh (int, optional): The threshold number of BatchNorm layers. Default is 10.
+
+        Returns:
+            (bool): True if the number of BatchNorm layers in the model is less than the threshold, False otherwise.
+        """
+        bn = tuple(v for k, v in nn.__dict__.items() if "Norm" in k)  # normalization layers, i.e. BatchNorm2d()
+        return sum(isinstance(v, bn) for v in self.modules()) < thresh  # True if < 'thresh' BatchNorm layers in model
+
+    def inference(self):
+        self.eval()
+        for p in self.parameters():
+            p.requires_grad = False
